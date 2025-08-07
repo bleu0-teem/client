@@ -35,17 +35,17 @@
             // listBox1
             // 
             listBox1.FormattingEnabled = true;
-            listBox1.Location = new Point(12, 12);
+            listBox1.Location = new System.Drawing.Point(12, 72);
             listBox1.Name = "listBox1";
-            listBox1.Size = new Size(776, 380);
+            listBox1.Size = new System.Drawing.Size(776, 340);
             listBox1.TabIndex = 0;
             listBox1.SelectedIndexChanged += listBox1_SelectedIndexChanged;
             // 
             // createServerButton
             // 
-            createServerButton.Location = new Point(12, 400);
+            createServerButton.Location = new System.Drawing.Point(12, 420);
             createServerButton.Name = "createServerButton";
-            createServerButton.Size = new Size(776, 36);
+            createServerButton.Size = new System.Drawing.Size(776, 36);
             createServerButton.TabIndex = 1;
             createServerButton.Text = "Create your own server";
             createServerButton.UseVisualStyleBackColor = true;
@@ -53,14 +53,14 @@
             // 
             // ServerList
             // 
-            AutoScaleDimensions = new SizeF(8F, 20F);
-            AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 450);
+            AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
+            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            ClientSize = new System.Drawing.Size(800, 470);
             Controls.Add(createServerButton);
             Controls.Add(listBox1);
-            FormBorderStyle = FormBorderStyle.Fixed3D;
+            FormBorderStyle = System.Windows.Forms.FormBorderStyle.Fixed3D;
             Name = "ServerList";
-            Text = " ";
+            Text = "Select Server";
             ResumeLayout(false);
         }
 

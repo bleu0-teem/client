@@ -12,10 +12,51 @@ namespace BLUE16Client
     {
         public string? SelectedVersion { get; private set; }
         public VersionInfo? SelectedVersionInfo { get; private set; }
+        private void ApplyTheme()
+        {
+            if (SettingsStore.DarkMode)
+            {
+                this.BackColor = Color.FromArgb(32, 32, 32);
+                listBox1.BackColor = Color.FromArgb(45, 45, 45);
+                listBox1.ForeColor = Color.White;
+                foreach (Control c in this.Controls)
+                {
+                    if (c is Label)
+                        c.ForeColor = Color.White;
+                    else if (c is Button)
+                    {
+                        c.BackColor = Color.FromArgb(60, 60, 60);
+                        c.ForeColor = Color.White;
+                    }
+                }
+            }
+            else
+            {
+                this.BackColor = SystemColors.Control;
+                listBox1.BackColor = Color.White;
+                listBox1.ForeColor = Color.Black;
+                foreach (Control c in this.Controls)
+                {
+                    if (c is Label)
+                        c.ForeColor = Color.Black;
+                    else if (c is Button)
+                    {
+                        c.BackColor = SystemColors.Control;
+                        c.ForeColor = Color.Black;
+                    }
+                }
+            }
+        }
+
+        private Font ubuntuFont = new Font("Ubuntu", 10F, FontStyle.Regular);
+
         public VersionList()
         {
             InitializeComponent();
             this.MaximizeBox = false;
+            ApplyTheme();
+            this.Font = ubuntuFont;
+            listBox1.Font = new Font("Ubuntu", 12F, FontStyle.Regular);
             listBox1.MouseDoubleClick += listBox1_MouseDoubleClick;
             listBox1.KeyDown += listBox1_KeyDown;
             listBox1.Items.Clear();
@@ -30,7 +71,7 @@ namespace BLUE16Client
             try
             {
                 using var client = new HttpClient();
-                var json = await client.GetStringAsync("https://blue16.site/src/json/clientversions.json");
+                var json = await client.GetStringAsync("https://raw.githubusercontent.com/blue16-team/blue16-web/refs/heads/main/www/src/json/clientversions.json");
                 var result = JsonSerializer.Deserialize<VersionListResponse>(json);
                 if (result != null && result.offline)
                 {
@@ -75,11 +116,12 @@ namespace BLUE16Client
             var version = listBox1.Items[e.Index] as VersionInfo;
             if (version != null)
             {
-                var font = e.Font;
+                var font = new Font("Ubuntu", 12F, FontStyle.Regular);
                 var bounds = e.Bounds;
                 var g = e.Graphics;
                 // Draw version name
-                g.DrawString(version.Name, font, Brushes.Black, bounds.Left + 10, bounds.Top + 6);
+                Brush nameBrush = SettingsStore.DarkMode ? Brushes.White : Brushes.Black;
+                g.DrawString(version.Name, font, nameBrush, bounds.Left + 10, bounds.Top + 6);
                 // Draw status with color
                 Color statusColor = Color.Gray;
                 if (version.Status == "Stable") statusColor = Color.Green;
@@ -122,11 +164,11 @@ namespace BLUE16Client
                 SelectedVersionInfo = version;
                 if (version.Offline)
                 {
-                    MessageBox.Show("Warning: Online features are not available for this version.", "Offline Version", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Warning: Online features are not available for this version. Server selection disabled while this version is selected.", "Offline Version", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
                 if (version.Vulnerable)
                 {
-                    MessageBox.Show("Warning: This version is marked as vulnerable!", "Vulnerable Version", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Warning: This version is marked as vulnerable! It is not reccomended to play in unknown public servers with this.", "Vulnerable Version", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
                 this.DialogResult = DialogResult.OK;
                 this.Close();

@@ -4,25 +4,148 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Drawing.Drawing2D;
 
 namespace BLUE16Client
 {
     public partial class ServerList : Form
     {
-        public ServerList()
+        private Panel headerPanel;
+        private TextBox searchBox;
+        private TextBox ipBox;
+        private Button ipConnectButton;
+        private int hoveredIndex = -1;
+        private List<ServerInfo> allServers = new List<ServerInfo>();
+        private bool isOnlineEnabled = true;
+
+        // Custom theme function
+        public void ApplyCustomTheme(Color backColor, Color foreColor, Font? font = null)
         {
-            InitializeComponent();
-            this.MaximizeBox = false;
-            listBox1.DrawMode = DrawMode.OwnerDrawFixed;
-            listBox1.ItemHeight = 40;
-            listBox1.DrawItem += listBox1_DrawItem;
-            listBox1.MouseDoubleClick += listBox1_MouseDoubleClick;
-            listBox1.KeyDown += listBox1_KeyDown;
-            // Example server data
-            var servers = new List<ServerInfo>
+            this.BackColor = backColor;
+            foreach (Control c in this.Controls)
+            {
+                c.BackColor = backColor;
+                c.ForeColor = foreColor;
+                if (font != null) c.Font = font;
+            }
+            listBox1.BackColor = backColor;
+            listBox1.ForeColor = foreColor;
+            if (font != null) listBox1.Font = font;
+        }
+
+        // Call this to disable server selection for offline versions
+        public void DisableOnlineSelection()
+        {
+            isOnlineEnabled = false;
+            listBox1.Enabled = false;
+            searchBox.Enabled = false;
+            ipBox.Enabled = false;
+            ipConnectButton.Enabled = false;
+            createServerButton.Enabled = false;
+        }
+
+        private Font ubuntuFont = new Font("Ubuntu", 10F, FontStyle.Regular);
+
+        private void InitializeCustomComponents()
+        {
+            // Header Panel
+            headerPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 60,
+                BackColor = SettingsStore.DarkMode ? Color.FromArgb(36, 37, 38) : Color.WhiteSmoke,
+                Padding = new Padding(0, 0, 0, 0)
+            };
+            var headerLabel = new Label
+            {
+                Text = "Select Server",
+                Font = new Font("Ubuntu", 18F, FontStyle.Bold),
+                ForeColor = SettingsStore.DarkMode ? Color.White : Color.Black,
+                Dock = DockStyle.Left,
+                Width = 250,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(20, 0, 0, 0)
+            };
+            searchBox = new TextBox
+            {
+                Font = new Font("Ubuntu", 12F, FontStyle.Regular),
+                Width = 220,
+                Height = 32,
+                Location = new Point(headerPanel.Width - 250, 14),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                PlaceholderText = "Search..."
+            };
+            searchBox.TextChanged += (s, e) => FilterServers();
+            headerPanel.Controls.Add(headerLabel);
+            headerPanel.Controls.Add(searchBox);
+
+            // IP entry UI
+            ipBox = new TextBox
+            {
+                Font = new Font("Ubuntu", 10F, FontStyle.Regular),
+                Width = 180,
+                Height = 28,
+                Location = new Point(headerPanel.Width - 480, 16),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                PlaceholderText = "Enter IP to join..."
+            };
+            ipConnectButton = new Button
+            {
+                Text = "Join by IP",
+                Font = new Font("Ubuntu", 10F, FontStyle.Regular),
+                Location = new Point(headerPanel.Width - 290, 16),
+                Size = new Size(90, 28),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right
+            };
+            ipConnectButton.Click += IpConnectButton_Click;
+            headerPanel.Controls.Add(ipBox);
+            headerPanel.Controls.Add(ipConnectButton);
+            this.Controls.Add(headerPanel);
+
+            // ListBox design
+            listBox1.BorderStyle = BorderStyle.None;
+            listBox1.Padding = new Padding(0);
+            listBox1.BackColor = SettingsStore.DarkMode ? Color.FromArgb(32, 32, 32) : Color.White;
+            listBox1.ForeColor = SettingsStore.DarkMode ? Color.White : Color.Black;
+            listBox1.MouseMove += (s, e) => {
+                int idx = listBox1.IndexFromPoint(e.Location);
+                if (hoveredIndex != idx) { hoveredIndex = idx; listBox1.Invalidate(); }
+            };
+            listBox1.MouseLeave += (s, e) => { hoveredIndex = -1; listBox1.Invalidate(); };
+        }
+
+        private void IpConnectButton_Click(object sender, EventArgs e)
+        {
+            string ip = ipBox.Text.Trim();
+            if (string.IsNullOrEmpty(ip) || !IPAddress.TryParse(ip, out _))
+            {
+                MessageBox.Show("Please enter a valid IP address.", "Invalid IP", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            SelectedServer = ip;
+            this.DialogResult = DialogResult.OK;
+            this.Close();
+        }
+
+        private void FilterServers()
+        {
+            string query = searchBox.Text.Trim().ToLower();
+            listBox1.Items.Clear();
+            foreach (var s in allServers)
+            {
+                if (string.IsNullOrEmpty(query) || s.Name.ToLower().Contains(query) || s.Owner.ToLower().Contains(query))
+                    listBox1.Items.Add(s);
+            }
+        }
+
+        private void LoadServers()
+        {
+            // Example server data (could be replaced with real data loading)
+            allServers = new List<ServerInfo>
             {
                 new ServerInfo { Name = "First server", OnlineCount = 12, Owner = "noobie" },
                 new ServerInfo { Name = "one server", OnlineCount = 5, Owner = "Maxf3m" },
@@ -41,83 +164,96 @@ namespace BLUE16Client
                 new ServerInfo { Name = "Natural Disaster Survival", OnlineCount = 11, Owner = "bot5" },
                 new ServerInfo { Name = "Bye!", OnlineCount = 5, Owner = "bot6" }
             };
-            listBox1.Items.Clear();
-            listBox1.Items.AddRange(servers.ToArray());
+            FilterServers();
+        }
+
+        public ServerList()
+        {
+            InitializeComponent();
+            this.MaximizeBox = false;
+            // Use default theme on startup
+            ApplyCustomTheme(SettingsStore.DarkMode ? Color.FromArgb(32, 32, 32) : SystemColors.Control,
+                             SettingsStore.DarkMode ? Color.White : Color.Black,
+                             ubuntuFont);
+            InitializeCustomComponents();
+            this.Font = ubuntuFont;
+            listBox1.Font = new Font("Ubuntu", 12F, FontStyle.Regular);
+            listBox1.DrawMode = DrawMode.OwnerDrawFixed;
+            listBox1.ItemHeight = 56;
+            listBox1.DrawItem += listBox1_DrawItem;
+            listBox1.MouseDoubleClick += listBox1_MouseDoubleClick;
+            listBox1.KeyDown += listBox1_KeyDown;
+            LoadServers();
         }
 
         private void listBox1_DrawItem(object sender, DrawItemEventArgs e)
         {
             if (e.Index < 0) return;
-            e.DrawBackground();
             var server = listBox1.Items[e.Index] as ServerInfo;
-            if (server != null)
+            var bounds = e.Bounds;
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            Color cardColor = hoveredIndex == e.Index
+                ? (SettingsStore.DarkMode ? Color.FromArgb(55, 55, 65) : Color.FromArgb(230, 230, 240))
+                : (SettingsStore.DarkMode ? Color.FromArgb(45, 45, 55) : Color.FromArgb(245, 245, 250));
+            Color borderColor = hoveredIndex == e.Index
+                ? (SettingsStore.DarkMode ? Color.FromArgb(80, 120, 255) : Color.FromArgb(80, 120, 255))
+                : (SettingsStore.DarkMode ? Color.FromArgb(60, 60, 70) : Color.FromArgb(220, 220, 230));
+            // Card shadow
+            Rectangle shadowRect = new Rectangle(bounds.Left + 2, bounds.Top + 4, bounds.Width - 4, bounds.Height - 2);
+            using (SolidBrush shadowBrush = new SolidBrush(Color.FromArgb(30, 0, 0, 0)))
+                g.FillRectangle(shadowBrush, shadowRect);
+            // Card background
+            using (GraphicsPath path = new GraphicsPath())
             {
-                var font = e.Font;
-                var bounds = e.Bounds;
-                var g = e.Graphics;
-                // Calculate vertical center
-                int centerY = bounds.Top + bounds.Height / 2;
-                int dotRadius = 7;
-                int dotX = bounds.Left + 10;
-                int dotY = centerY - dotRadius;
-                // Draw filled green circle (dot) with black outline
-                using (Brush dotBrush = new SolidBrush(Color.Green))
-                using (Pen dotPen = new Pen(Color.Black, 2))
+                int radius = 12;
+                path.AddArc(bounds.Left, bounds.Top, radius, radius, 180, 90);
+                path.AddArc(bounds.Right - radius, bounds.Top, radius, radius, 270, 90);
+                path.AddArc(bounds.Right - radius, bounds.Bottom - radius, radius, radius, 0, 90);
+                path.AddArc(bounds.Left, bounds.Bottom - radius, radius, radius, 90, 90);
+                path.CloseFigure();
+                using (SolidBrush cardBrush = new SolidBrush(cardColor))
+                    g.FillPath(cardBrush, path);
+                using (Pen borderPen = new Pen(borderColor, hoveredIndex == e.Index ? 2 : 1))
+                    g.DrawPath(borderPen, path);
+            }
+            // Online icon
+            int iconX = bounds.Left + 16;
+            int iconY = bounds.Top + 16;
+            Color onlineColor = server.OnlineCount > 0 ? Color.LimeGreen : Color.Gray;
+            using (Brush onlineBrush = new SolidBrush(onlineColor))
+                g.FillEllipse(onlineBrush, iconX, iconY, 20, 20);
+            using (Pen outlinePen = new Pen(Color.White, 2))
+                g.DrawEllipse(outlinePen, iconX, iconY, 20, 20);
+            // Server name
+            var font = new Font("Ubuntu", 13F, FontStyle.Bold);
+            var subFont = new Font("Ubuntu", 10F, FontStyle.Regular);
+            Brush nameBrush = SettingsStore.DarkMode ? Brushes.White : Brushes.Black;
+            g.DrawString(server.Name, font, nameBrush, bounds.Left + 48, bounds.Top + 8);
+            // Host
+            g.DrawString($"Host: {server.Owner}", subFont, SettingsStore.DarkMode ? Brushes.Gainsboro : Brushes.DimGray, bounds.Left + 48, bounds.Top + 30);
+            // Online count
+            string statusText = $"{server.OnlineCount}/12 online";
+            var statusBrush = new SolidBrush(server.OnlineCount > 0 ? Color.LimeGreen : Color.Gray);
+            g.DrawString(statusText, subFont, statusBrush, bounds.Right - 110, bounds.Top + 8);
+            // OFFICIAL badge
+            if (server.Name.ToLower().Contains("official") && server.Owner.Equals("BLUE16", StringComparison.OrdinalIgnoreCase))
+            {
+                string badge = "OFFICIAL";
+                var badgeFont = new Font("Ubuntu", 10F, FontStyle.Bold);
+                var badgeSize = g.MeasureString(badge, badgeFont);
+                int badgeX = bounds.Right - (int)badgeSize.Width - 20;
+                int badgeY = bounds.Top + 32;
+                Rectangle badgeRect = new Rectangle(badgeX - 4, badgeY - 2, (int)badgeSize.Width + 8, (int)badgeSize.Height + 4);
+                using (Brush bgBrush = new SolidBrush(Color.FromArgb(255, 255, 215, 0)))
+                using (Pen borderPen = new Pen(Color.Orange, 1))
                 {
-                    g.FillEllipse(dotBrush, dotX, dotY, dotRadius * 2, dotRadius * 2);
-                    g.DrawEllipse(dotPen, dotX, dotY, dotRadius * 2, dotRadius * 2);
+                    g.FillRectangle(bgBrush, badgeRect);
+                    g.DrawRectangle(borderPen, badgeRect);
                 }
-                // Draw online count (e.g., 10/12) next to dot in green
-                string onlineText = $"{server.OnlineCount}/12";
-                var onlineFont = new Font(font.FontFamily, font.Size, FontStyle.Bold);
-                var onlineSize = g.MeasureString(onlineText, onlineFont);
-                int onlineX = dotX + dotRadius * 2 + 8;
-                int onlineY = centerY - (int)(onlineSize.Height / 2);
-                g.DrawString(onlineText, onlineFont, Brushes.Green, onlineX, onlineY);
-                // Draw server name centered horizontally
-                string nameText = server.Name;
-                var nameSize = g.MeasureString(nameText, font);
-                int nameX = bounds.Left + (bounds.Width - (int)nameSize.Width) / 2;
-                int nameY = centerY - (int)(nameSize.Height / 2);
-                g.DrawString(nameText, font, Brushes.Black, nameX, nameY);
-
-                // Draw host right-aligned and vertically centered (calculate hostX early for badge logic)
-                string hostText = $"Host: {server.Owner}";
-                var hostSize = g.MeasureString(hostText, font);
-                int hostX = bounds.Right - (int)hostSize.Width - 10;
-                int hostY = centerY - (int)(hostSize.Height / 2);
-
-                // Draw OFFICIAL badge if criteria met
-                if (server.Name.ToLower().Contains("official") && server.Owner.Equals("BLUE16", StringComparison.OrdinalIgnoreCase))
+                using (Brush badgeBrush = new SolidBrush(SettingsStore.DarkMode ? Color.White : Color.Black))
                 {
-                    string badge = "OFFICIAL";
-                    var badgeFont = new Font(font.FontFamily, font.Size, FontStyle.Bold);
-                    var badgeSize = g.MeasureString(badge, badgeFont);
-                    int badgeX = nameX + (int)nameSize.Width + 12;
-                    int badgeY = centerY - (int)(badgeSize.Height / 2);
-                    // Ensure badge does not overlap host text
-                    if (badgeX + badgeSize.Width > hostX)
-                    {
-                        badgeX = hostX - (int)badgeSize.Width - 8;
-                    }
-                    // Draw background rectangle for badge
-                    Rectangle badgeRect = new Rectangle(badgeX - 4, badgeY - 2, (int)badgeSize.Width + 8, (int)badgeSize.Height + 4);
-                    using (Brush bgBrush = new SolidBrush(Color.FromArgb(255, 255, 215, 0))) // Gold background
-                    using (Pen borderPen = new Pen(Color.Orange, 1))
-                    {
-                        g.FillRectangle(bgBrush, badgeRect);
-                        g.DrawRectangle(borderPen, badgeRect);
-                    }
-                    using (Brush badgeBrush = new SolidBrush(Color.Black))
-                    {
-                        g.DrawString(badge, badgeFont, badgeBrush, badgeX, badgeY);
-                    }
-                }
-
-                // Draw host (after badge logic)
-                using (Brush hostBrush = new SolidBrush(Color.DarkOrange))
-                {
-                    g.DrawString(hostText, font, hostBrush, hostX, hostY);
+                    g.DrawString(badge, badgeFont, badgeBrush, badgeX, badgeY);
                 }
             }
             e.DrawFocusRectangle();

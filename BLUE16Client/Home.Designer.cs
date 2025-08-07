@@ -1,4 +1,10 @@
-﻿namespace BLUE16Client
+﻿using System.Drawing.Text;
+using System.Runtime.InteropServices;
+using System.Security.Principal;
+using Microsoft.Win32;
+using System.IO;
+
+namespace BLUE16Client
 {
     partial class Home
     {
@@ -315,5 +321,37 @@
         private Panel panel3;
         private Label label7;
         private ProgressBar installProgressBar;
+
+        private static PrivateFontCollection privateFonts;
+        private static Font ubuntuFont;
+
+        private void EnsureUbuntuFontLoaded()
+        {
+            // Load font from resource for use in app
+            if (privateFonts == null)
+            {
+                privateFonts = new PrivateFontCollection();
+                using (var ms = new MemoryStream(Properties.Resources.Ubuntu_Regular))
+                {
+                    byte[] buffer = ms.ToArray();
+                    IntPtr fontPtr = Marshal.AllocCoTaskMem(buffer.Length);
+                    Marshal.Copy(buffer, 0, fontPtr, buffer.Length);
+                    privateFonts.AddMemoryFont(fontPtr, buffer.Length);
+                    Marshal.FreeCoTaskMem(fontPtr);
+                }
+                ubuntuFont = new Font(privateFonts.Families[0], 10, FontStyle.Regular);
+            }
+        }
+
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            EnsureUbuntuFontLoaded();
+            this.Font = ubuntuFont;
+            foreach (Control c in this.Controls)
+            {
+                c.Font = ubuntuFont;
+            }
+        }
     }
 }
