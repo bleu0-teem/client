@@ -184,6 +184,71 @@ namespace BLUE16Client
             listBox1.MouseDoubleClick += listBox1_MouseDoubleClick;
             listBox1.KeyDown += listBox1_KeyDown;
             LoadServers();
+            ApplyTheme();
+        }
+
+        private void ApplyTheme()
+        {
+            if (SettingsStore.CurrentCustomTheme != null)
+            {
+                var theme = SettingsStore.CurrentCustomTheme;
+                this.BackColor = theme.BackColor;
+                listBox1.BackColor = theme.PanelColor;
+                listBox1.ForeColor = theme.ForeColor;
+                foreach (Control c in this.Controls)
+                {
+                    if (c is Label)
+                        c.ForeColor = theme.LabelColor;
+                    else if (c is Button)
+                    {
+                        c.BackColor = theme.ButtonColor;
+                        c.ForeColor = theme.ForeColor;
+                    }
+                    if (theme.MainFont != null) c.Font = theme.MainFont;
+                }
+            }
+            else if (SettingsStore.DarkMode)
+            {
+                this.BackColor = Color.FromArgb(32, 32, 32);
+                listBox1.BackColor = Color.FromArgb(45, 45, 55);
+                listBox1.ForeColor = Color.White;
+                foreach (Control c in this.Controls)
+                {
+                    if (c is Label)
+                        c.ForeColor = Color.White;
+                    else if (c is Button)
+                    {
+                        c.BackColor = Color.FromArgb(55, 55, 65);
+                        c.ForeColor = Color.White;
+                    }
+                    if (c is TextBox)
+                    {
+                        c.BackColor = Color.FromArgb(50, 50, 60);
+                        c.ForeColor = Color.White;
+                    }
+                }
+            }
+            else
+            {
+                this.BackColor = SystemColors.Control;
+                listBox1.BackColor = Color.White;
+                listBox1.ForeColor = Color.Black;
+                foreach (Control c in this.Controls)
+                {
+                    if (c is Label)
+                        c.ForeColor = Color.Black;
+                    else if (c is Button)
+                    {
+                        c.BackColor = Color.FromArgb(230, 230, 240);
+                        c.ForeColor = Color.Black;
+                    }
+                    if (c is TextBox)
+                    {
+                        c.BackColor = Color.White;
+                        c.ForeColor = Color.Black;
+                    }
+                }
+            }
         }
 
         private void listBox1_DrawItem(object sender, DrawItemEventArgs e)
@@ -247,6 +312,26 @@ namespace BLUE16Client
                 Rectangle badgeRect = new Rectangle(badgeX - 4, badgeY - 2, (int)badgeSize.Width + 8, (int)badgeSize.Height + 4);
                 using (Brush bgBrush = new SolidBrush(Color.FromArgb(255, 255, 215, 0)))
                 using (Pen borderPen = new Pen(Color.Orange, 1))
+                {
+                    g.FillRectangle(bgBrush, badgeRect);
+                    g.DrawRectangle(borderPen, badgeRect);
+                }
+                using (Brush badgeBrush = new SolidBrush(SettingsStore.DarkMode ? Color.White : Color.Black))
+                {
+                    g.DrawString(badge, badgeFont, badgeBrush, badgeX, badgeY);
+                }
+            }
+            // Not Verified badge for custom domains
+            if (SettingsStore.ServerDomain != "github.com" && SettingsStore.ServerDomain != "blue16.site")
+            {
+                string badge = "NOT VERIFIED";
+                var badgeFont = new Font("Ubuntu", 10F, FontStyle.Bold);
+                var badgeSize = g.MeasureString(badge, badgeFont);
+                int badgeX = bounds.Right - (int)badgeSize.Width - 120;
+                int badgeY = bounds.Top + 32;
+                Rectangle badgeRect = new Rectangle(badgeX - 4, badgeY - 2, (int)badgeSize.Width + 8, (int)badgeSize.Height + 4);
+                using (Brush bgBrush = new SolidBrush(Color.FromArgb(255, 200, 50, 50)))
+                using (Pen borderPen = new Pen(Color.Red, 1))
                 {
                     g.FillRectangle(bgBrush, badgeRect);
                     g.DrawRectangle(borderPen, badgeRect);

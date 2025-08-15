@@ -43,6 +43,15 @@ namespace BLUE16Client
             iconbutton.Click += IconButton_Click;
             playbutton.Click += PlayButton_Click;
             profilebutton.Click += ProfileButton_Click;
+
+            // Initialize Discord RPC
+            _ = DiscordRpcManager.Instance;
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            base.OnFormClosing(e);
+            DiscordRpcManager.Instance.Shutdown();
         }
 
         private void InternetStatusTimer_Tick(object sender, EventArgs e)
@@ -59,7 +68,7 @@ namespace BLUE16Client
             }
             else
             {
-                label2.Text = "STATUS: Disconnected";
+                label2.Text = "STATUS: Disconnected, using Github repo";
                 label2.ForeColor = System.Drawing.Color.Red;
             }
         }
@@ -70,7 +79,7 @@ namespace BLUE16Client
             {
                 using (var ping = new Ping())
                 {
-                    var reply = ping.Send("8.8.8.8", 1000);
+                    var reply = ping.Send("https://www.blue16.site", 1000);
                     return reply.Status == IPStatus.Success;
                 }
             }
@@ -112,10 +121,33 @@ namespace BLUE16Client
             }
         }
 
-        private void ApplySettings()
+        public void ApplySettings()
         {
-            // Apply Dark Mode if enabled
-            if (SettingsStore.DarkMode)
+            if (SettingsStore.CurrentCustomTheme != null)
+            {
+                var theme = SettingsStore.CurrentCustomTheme;
+                this.BackColor = theme.BackColor;
+                foreach (Control c in this.Controls)
+                {
+                    if (c is Panel)
+                    {
+                        c.BackColor = theme.PanelColor;
+                        c.ForeColor = theme.ForeColor;
+                    }
+                    else if (c is Label)
+                    {
+                        c.ForeColor = theme.LabelColor;
+                    }
+                    else if (c is Button button)
+                    {
+                        button.BackColor = theme.ButtonColor;
+                        button.ForeColor = theme.ForeColor;
+                        if (theme.MainFont != null) button.Font = theme.MainFont;
+                    }
+                    if (theme.MainFont != null) c.Font = theme.MainFont;
+                }
+            }
+            else if (SettingsStore.DarkMode)
             {
                 this.BackColor = Color.FromArgb(32, 32, 32);
                 foreach (Control c in this.Controls)
@@ -248,6 +280,9 @@ namespace BLUE16Client
                     label6.Text = serverList.SelectedServer;
                     label2.Text = $"Server: {serverList.SelectedServer}";
                     label2.ForeColor = System.Drawing.Color.Blue;
+                    // Update Discord RPC with version and server info
+                    if (selectedVersionInfo != null)
+                        DiscordRpcManager.Instance.UpdateForServer(selectedVersionInfo, serverList.SelectedServer);
                 }
             }
         }
@@ -267,6 +302,9 @@ namespace BLUE16Client
                                   $"Patched by: {selectedVersionInfo.PatchBy}\n" +
                                   $"Offline: {selectedVersionInfo.Offline}\n" +
                                   $"Description: {selectedVersionInfo.Desc}";
+
+                    // Update Discord RPC with version info
+                    DiscordRpcManager.Instance.UpdateForVersion(selectedVersionInfo);
                 }
             }
         }
@@ -302,12 +340,33 @@ namespace BLUE16Client
                     var zipBytes = await client.GetByteArrayAsync(selectedVersionInfo.DownloadUrl);
                     Directory.CreateDirectory(versionFolder);
                     string zipPath = Path.Combine(versionFolder, "version.zip");
+                    int total = zipBytes.Length;
+                    installProgressBar.Value = 0;
+                    installProgressBar.Visible = true;
+                    installProgressBar.BringToFront();
+                    label2.Text = "STATUS: Installing...";
+                    label2.ForeColor = Color.Orange;
+                    int chunk = Math.Max(1, total / 100);
+                    for (int i = 0; i < total; i += chunk)
+                    {
+                        installProgressBar.Value = Math.Min(100, (i * 100) / total);
+                        label2.Text = $"STATUS: Installing... {installProgressBar.Value}%";
+                        await Task.Delay(10); // Simulate progress
+                    }
                     await File.WriteAllBytesAsync(zipPath, zipBytes);
+                    installProgressBar.Value = 100;
+                    label2.Text = "STATUS: Extracting...";
                     ZipFile.ExtractToDirectory(zipPath, versionFolder, true);
                     File.Delete(zipPath);
+                    installProgressBar.Visible = false;
+                    label2.Text = "STATUS: Installed";
+                    label2.ForeColor = Color.Green;
                 }
                 catch (Exception ex)
                 {
+                    installProgressBar.Visible = false;
+                    label2.Text = "STATUS: Install Failed";
+                    label2.ForeColor = Color.Red;
                     MessageBox.Show($"Failed to download or extract version: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }

@@ -71,7 +71,8 @@ namespace BLUE16Client
             try
             {
                 using var client = new HttpClient();
-                var json = await client.GetStringAsync("https://raw.githubusercontent.com/blue16-team/blue16-web/refs/heads/main/www/src/json/clientversions.json");
+                var jsonUrl = SettingsStore.GetResourceUrl("src/json/clientversions.json");
+                var json = await client.GetStringAsync(jsonUrl);
                 var result = JsonSerializer.Deserialize<VersionListResponse>(json);
                 if (result != null && result.offline)
                 {
