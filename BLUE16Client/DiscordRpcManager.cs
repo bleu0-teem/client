@@ -48,6 +48,12 @@ namespace BLUE16Client
                 if (_client?.IsInitialized != true)
                     return;
 
+                // Add login status to details if logged in
+                if (SettingsStore.IsLoggedIn)
+                {
+                    details = $"{details} - {SettingsStore.Username}";
+                }
+
                 _client.SetPresence(new RichPresence
                 {
                     Details = details,

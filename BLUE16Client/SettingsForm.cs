@@ -19,7 +19,7 @@ namespace BLUE16Client
             checkBoxDarkMode.Checked = SettingsStore.DarkMode;
             comboBoxLanguage.SelectedItem = SettingsStore.Language;
             checkBoxDiscordRpc.Checked = SettingsStore.EnableDiscordRpc;
-            comboBoxDomain.SelectedItem = (SettingsStore.ServerDomain == "github.com" || SettingsStore.ServerDomain == "blue16.site") ? SettingsStore.ServerDomain : "Custom...";
+            comboBoxDomain.SelectedItem = (SettingsStore.ServerDomain == "github.com" || SettingsStore.ServerDomain == "blue16.site" || SettingsStore.ServerDomain == "blue16-web.vercel.app") ? SettingsStore.ServerDomain : "Custom...";
             if (comboBoxDomain.SelectedItem?.ToString() == "Custom...")
             {
                 comboBoxDomain.Items.Add(SettingsStore.ServerDomain);

@@ -257,8 +257,38 @@ namespace BLUE16Client
 
         private void ProfileButton_Click(object sender, EventArgs e)
         {
-            // Show profile settings or login dialog
-            DarkMessageBox.Show("Profile functionality coming soon!", "Profile", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (!SettingsStore.IsLoggedIn)
+            {
+                using (var loginForm = new LoginForm())
+                {
+                    if (loginForm.ShowDialog() == DialogResult.OK)
+                    {
+                        // Update Discord RPC to show logged-in status
+                        if (selectedVersionInfo != null)
+                        {
+                            DiscordRpcManager.Instance.UpdateForVersion(selectedVersionInfo);
+                        }
+                        DarkMessageBox.Show($"Logged in as {SettingsStore.Username}!", "Login Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            }
+            else
+            {
+                var result = DarkMessageBox.Show($"Logged in as {SettingsStore.Username}\nDo you want to log out?", 
+                    "Profile", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                
+                if (result == DialogResult.Yes)
+                {
+                    SettingsStore.AuthToken = null;
+                    SettingsStore.Username = null;
+                    // Update Discord RPC to remove login status
+                    if (selectedVersionInfo != null)
+                    {
+                        DiscordRpcManager.Instance.UpdateForVersion(selectedVersionInfo);
+                    }
+                    DarkMessageBox.Show("Logged out successfully.", "Logout", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
         }
 
         private void label2_Click(object sender, EventArgs e)

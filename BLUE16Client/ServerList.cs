@@ -322,7 +322,7 @@ namespace BLUE16Client
                 }
             }
             // Not Verified badge for custom domains
-            if (SettingsStore.ServerDomain != "github.com" && SettingsStore.ServerDomain != "blue16.site")
+            if (SettingsStore.ServerDomain != "github.com" && SettingsStore.ServerDomain != "blue16.site" && SettingsStore.ServerDomain != "blue16-web.vercel.app")
             {
                 string badge = "NOT VERIFIED";
                 var badgeFont = new Font("Ubuntu", 10F, FontStyle.Bold);

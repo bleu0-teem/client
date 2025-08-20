@@ -83,7 +83,7 @@ namespace BLUE16Client
             // 
             comboBoxDomain.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxDomain.FormattingEnabled = true;
-            comboBoxDomain.Items.AddRange(new object[] { "github.com", "blue16.site", "Custom..." });
+            comboBoxDomain.Items.AddRange(new object[] { "github.com", "blue16.site", "blue16-web.vercel.app", "Custom..." });
             comboBoxDomain.Location = new Point(19, 143);
             comboBoxDomain.Name = "comboBoxDomain";
             comboBoxDomain.Size = new Size(151, 28);

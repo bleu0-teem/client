@@ -5,8 +5,11 @@ public static class SettingsStore
     public static string? VersionsFolder { get; set; } = Path.Combine(Application.StartupPath, "Versions");
     public static bool EnableDiscordRpc = true;
     public static string ServerDomain { get; set; } = "github.com";
-
+    public static string? AuthToken { get; set; }
+    public static string? Username { get; set; }
     public static CustomTheme? CurrentCustomTheme { get; set; }
+
+    public static bool IsLoggedIn => !string.IsNullOrEmpty(AuthToken);
 
     public static string GetResourceUrl(string path)
     {
