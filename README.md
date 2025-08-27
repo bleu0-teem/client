@@ -1,4 +1,4 @@
-# 💻 BLUE16 Desktop Client
+# BLUE16 Desktop Client
 
 <p align="center">
   <img src="https://img.shields.io/github/stars/bleu0-teem/client?style=for-the-badge&logo=github&label=Stars" alt="GitHub Stars"/>
@@ -6,7 +6,7 @@
   <img src="https://img.shields.io/github/forks/bleu0-teem/client?style=for-the-badge&logo=github&label=Forks" alt="GitHub Forks"/>
 </p>
 
-A dedicated, lightweight Windows client designed to seamlessly integrate with the **BLUE16 launcher**. Experience an efficient and native desktop interface for your ROBLOX revival journey, focusing on core functionality and a smooth user experience.
+A dedicated, lightweight Windows client designed to seamlessly integrate with the **BLUE16**. Experience an efficient and native desktop interface for your ROBLOX revival journey, focusing on core functionality and a smooth user experience.
 
 ---
 
@@ -83,7 +83,7 @@ You have a few options to run the application:
 
 ## 👋 Contributing
 
-We welcome contributions from the community! If you're interested in helping improve the BLUE16 Desktop Client, please refer to our [`CONTRIBUTING.md`](CONTRIBUTING.md) guide for detailed information on how to get involved.
+We welcome contributions from the community! If you're interested in helping improve the BLUE16, please refer to our [`CONTRIBUTING.md`](CONTRIBUTING.md) guide for detailed information on how to get involved.
 
 ---
 
@@ -108,5 +108,5 @@ Copyright © [bleu0 teem omg](https://github.com/bleu0-teem)
 
 ---
 
-### Loved BLUE16 Client? Show your support! ⭐
+### Loved BLUE16? Show your support! ⭐
 If you find this project exciting or useful, please consider starring our repository! Your support helps our open-source efforts thrive.
