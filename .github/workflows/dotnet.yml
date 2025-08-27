@@ -5,28 +5,34 @@ on:
     branches: [ "**" ]        # run on all branches
   pull_request:
     branches: [ "**" ]
-  workflow_dispatch:           # allow manual trigger
+  workflow_dispatch:           # manual trigger
 
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '8.0.x'
 
-    - name: Restore
+    - name: Restore dependencies
       run: dotnet restore BLUE16Client.sln
 
-    - name: Build
+    - name: Build solution
       run: dotnet build BLUE16Client.sln -c Release --no-restore
 
-    - name: Publish
+    - name: Publish output
       run: dotnet publish BLUE16Client.sln -c Release -o publish
+
+    - name: Zip publish folder
+      run: |
+        cd publish
+        powershell Compress-Archive -Path * -DestinationPath ../BLUE16Client-nightly.zip
 
     # Only update the release for pushes to main
     - name: Upload Nightly Release
@@ -38,8 +44,6 @@ jobs:
         body: |
           Nightly build from commit ${{ github.sha }}
           Date: ${{ github.event.head_commit.timestamp }}
-        files: publish/**
-        prerelease: true
-        draft: false
+        files: BLUE16Client-nightly.zip
       env:
         GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
