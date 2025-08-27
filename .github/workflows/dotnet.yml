@@ -1,10 +1,11 @@
-name: .NET Build
+name: .NET Nightly Build
 
 on:
   push:
-    branches: [ "**" ]
+    branches: [ "**" ]        
   pull_request:
     branches: [ "**" ]
+  workflow_dispatch:           
 
 jobs:
   build:
@@ -27,8 +28,16 @@ jobs:
     - name: Publish
       run: dotnet publish BLUE16Client.sln -c Release -o publish
 
-    - name: Upload build
-      uses: actions/upload-artifact@v4
+    - name: Upload Nightly Release
+      uses: softprops/action-gh-release@v2
       with:
-        name: BLUE16Client
-        path: publish
+        tag_name: nightly
+        name: Nightly Build
+        body: |
+          Nightly build from commit ${{ github.sha }}
+          Date: ${{ github.event.head_commit.timestamp }}
+        files: publish/**
+        prerelease: true
+        draft: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
