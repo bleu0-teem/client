@@ -2,10 +2,10 @@ name: .NET Nightly Build
 
 on:
   push:
-    branches: [ "**" ]        
+    branches: [ "**" ]        # run on all branches
   pull_request:
     branches: [ "**" ]
-  workflow_dispatch:           
+  workflow_dispatch:           # allow manual trigger
 
 jobs:
   build:
@@ -28,7 +28,9 @@ jobs:
     - name: Publish
       run: dotnet publish BLUE16Client.sln -c Release -o publish
 
+    # Only update the release for pushes to main
     - name: Upload Nightly Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: softprops/action-gh-release@v2
       with:
         tag_name: nightly
@@ -40,4 +42,4 @@ jobs:
         prerelease: true
         draft: false
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
