@@ -12,6 +12,7 @@ Legend:
  - [x] Added GitHub badges to README.md (P1)
  
 ## In Progress
+ - [ ] Test online clients with max using Radmin VPN (P2)
  - [ ] Integrate with the BLUE16 Web API for fetching available Roblox versions (P2)
  - [ ] Implement secure storage for user session tokens locally (e.g., using .NET's Data Protection API) (P2)
  - [ ] Design and implement the main "Launch Game" functionality (selecting version, executing game) (P2)
