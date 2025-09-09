@@ -153,6 +153,8 @@ namespace BLUE16Client
                     {
                         SettingsStore.AuthToken = token;
                         SettingsStore.Username = result.username;
+                        // Persist securely for future sessions
+                        SettingsStore.SaveCredentialsSecure();
 
                         statusLabel.Text = "Login successful!";
                         statusLabel.ForeColor = Color.Green;

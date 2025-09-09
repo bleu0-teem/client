@@ -13,39 +13,39 @@ Legend:
  
 ## In Progress
  - [ ] Test online clients with max using Radmin VPN (P2)
- - [ ] Integrate with the BLUE16 Web API for fetching available Roblox versions (P2)
+ - [x] Integrate with the BLUE16 Web API for fetching available Roblox versions (P2)
  - [ ] Implement secure storage for user session tokens locally (e.g., using .NET's Data Protection API) (P2)
- - [ ] Design and implement the main "Launch Game" functionality (selecting version, executing game) (P2)
+ - [x] Design and implement the main "Launch Game" functionality (selecting version, executing game) (P2)
  
 ## P0 — Next Up (must-have)
  - [ ] **Client Auto-Update Mechanism:** Implement a robust way for the client to detect, download, and apply updates.
- - [ ] **Robust Error Handling:** Display user-friendly error messages for common issues (network, API failures, invalid credentials, game launch errors).
+ - [x] **Robust Error Handling:** Display user-friendly error messages for common issues (network, API failures, invalid credentials, game launch errors).
  - [ ] **System Tray Integration:** Minimize to tray, show notifications from system tray icon.
- - [ ] **Version Selection UI:** Allow users to browse and select different Roblox versions within the client.
+ - [x] **Version Selection UI:** Allow users to browse and select different Roblox versions within the client.
  - [ ] **Security Review:** Ensure local credential storage is robust and API communication is secure.
  
 ## P1 — Backlog (should-have)
  - [ ] **Game Launch Customization:** Options for custom game executables paths, command-line arguments.
- - [ ] **Activity Indicators:** Show loading/processing states for network requests and game launches.
- - [ ] **Basic Settings Page:** Allow users to change API endpoint (for dev/testing), game install path, logging level.
+ - [x] **Activity Indicators:** Show loading/processing states for network requests and game launches.
+ - [x] **Basic Settings Page:** Allow users to change API endpoint (for dev/testing), game install path, logging level.
  - [ ] **Notification System:** In-app pop-ups or toast notifications for important events (update available, game launched, error).
  - [ ] **Improved Logging:** Implement structured logging to a local file for easier debugging.
  - [ ] **"Forgot Password" flow:** Initiate via the client, redirecting to web.
  
 ## P2 — Nice to Have (could-have)
- - [ ] **Theming/Customization:** Allow users to choose basic UI themes or accent colors.
- - [ ] **Offline Mode (Limited):** Allow launching previously downloaded versions if offline.
+ - [x] **Theming/Customization:** Allow users to choose basic UI themes or accent colors.
+ - [x] **Offline Mode (Limited):** Allow launching previously downloaded versions if offline.
  - [ ] **"Remember Me" Functionality:** Securely persist login for extended periods.
- - [ ] **Pre-Launch Checks:** Verify game files, dependencies, or required permissions.
+ - [x] **Pre-Launch Checks:** Verify game files, dependencies, or required permissions.
  - [ ] **Context Menus:** Right-click options for various UI elements.
  - [ ] **Accessibility Improvements:** Basic keyboard navigation, screen reader compatibility.
  
 ## QA / Verification Checklist
  - [ ] Client installation and uninstallation are clean.
  - [ ] Authentication (login, logout, token refresh) works as expected.
- - [ ] Game launching (for various versions) is successful.
+ - [x] Game launching (for various versions) is successful.
  - [ ] All API interactions (fetching versions, user data) handle success/failure gracefully.
- - [ ] UI remains responsive during network operations and heavy tasks.
+ - [x] UI remains responsive during network operations and heavy tasks.
  - [ ] Application handles unexpected closures (crashes, forced shutdowns) without data corruption.
  - [ ] All external links open correctly in the default web browser.
  - [ ] Basic window resize and minimize/maximize functionality is stable.

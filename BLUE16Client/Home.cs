@@ -16,6 +16,9 @@ namespace BLUE16Client
         private VersionList.VersionInfo? selectedVersionInfo;
         private string versionsFolder => SettingsStore.VersionsFolder ?? Path.Combine(Application.StartupPath, "Versions");
 
+        private NotifyIcon? trayIcon;
+        private ContextMenuStrip? trayMenu;
+
         public Home()
         {
             InitializeComponent();
@@ -46,12 +49,26 @@ namespace BLUE16Client
 
             // Initialize Discord RPC
             _ = DiscordRpcManager.Instance;
+
+            // Initialize tray icon
+            InitializeTray();
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             base.OnFormClosing(e);
             DiscordRpcManager.Instance.Shutdown();
+        }
+
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+            // Apply settings immediately on startup (theme/language) and reflect login if credentials loaded
+            ApplySettings();
+            if (SettingsStore.IsLoggedIn)
+            {
+                label3.Text = $"Logged in as {SettingsStore.Username}";
+            }
         }
 
         private void InternetStatusTimer_Tick(object sender, EventArgs e)
@@ -108,6 +125,49 @@ namespace BLUE16Client
         private void label1_Click(object sender, EventArgs e)
         {
 
+        }
+
+        private void InitializeTray()
+        {
+            trayMenu = new ContextMenuStrip();
+            var showItem = new ToolStripMenuItem("Show");
+            var playItem = new ToolStripMenuItem("Play");
+            var exitItem = new ToolStripMenuItem("Exit");
+            showItem.Click += (s, e) => RestoreFromTray();
+            playItem.Click += (s, e) => Startgame_Click(this, EventArgs.Empty);
+            exitItem.Click += (s, e) => { trayIcon!.Visible = false; Close(); };
+            trayMenu.Items.Add(showItem);
+            trayMenu.Items.Add(playItem);
+            trayMenu.Items.Add(new ToolStripSeparator());
+            trayMenu.Items.Add(exitItem);
+
+            trayIcon = new NotifyIcon
+            {
+                Visible = false,
+                Text = "BLUE16Client",
+                ContextMenuStrip = trayMenu,
+                Icon = SystemIcons.Application
+            };
+            trayIcon.DoubleClick += (s, e) => RestoreFromTray();
+        }
+
+        private void MinimizeToTray()
+        {
+            if (trayIcon == null) return;
+            trayIcon.Visible = true;
+            this.Hide();
+            trayIcon.BalloonTipTitle = "BLUE16Client";
+            trayIcon.BalloonTipText = "Running in the tray";
+            trayIcon.ShowBalloonTip(2000);
+        }
+
+        private void RestoreFromTray()
+        {
+            if (trayIcon == null) return;
+            this.Show();
+            this.WindowState = FormWindowState.Normal;
+            this.Activate();
+            trayIcon.Visible = false;
         }
 
         private void settingsbutton_Click(object sender, EventArgs e)
@@ -268,6 +328,8 @@ namespace BLUE16Client
                         {
                             DiscordRpcManager.Instance.UpdateForVersion(selectedVersionInfo);
                         }
+                        // Save credentials already handled in LoginForm; reflect UI state
+                        label3.Text = $"Logged in as {SettingsStore.Username}!";
                         DarkMessageBox.Show($"Logged in as {SettingsStore.Username}!", "Login Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
@@ -279,13 +341,13 @@ namespace BLUE16Client
                 
                 if (result == DialogResult.Yes)
                 {
-                    SettingsStore.AuthToken = null;
-                    SettingsStore.Username = null;
+                    SettingsStore.ClearCredentialsSecure();
                     // Update Discord RPC to remove login status
                     if (selectedVersionInfo != null)
                     {
                         DiscordRpcManager.Instance.UpdateForVersion(selectedVersionInfo);
                     }
+                    label3.Text = string.Empty;
                     DarkMessageBox.Show("Logged out successfully.", "Logout", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
@@ -298,7 +360,13 @@ namespace BLUE16Client
 
         private void Home_Load(object sender, EventArgs e)
         {
-
+            this.Resize += (s, ev) =>
+            {
+                if (this.WindowState == FormWindowState.Minimized)
+                {
+                    MinimizeToTray();
+                }
+            };
         }
 
         private void ServerSelect_Click(object sender, EventArgs e)
