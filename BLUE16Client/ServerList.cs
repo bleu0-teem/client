@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -170,7 +170,9 @@ namespace BLUE16Client
         public ServerList()
         {
             InitializeComponent();
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
+            this.MinimizeBox = false;
             // Use default theme on startup
             ApplyCustomTheme(SettingsStore.DarkMode ? Color.FromArgb(32, 32, 32) : SystemColors.Control,
                              SettingsStore.DarkMode ? Color.White : Color.Black,
@@ -185,6 +187,47 @@ namespace BLUE16Client
             listBox1.KeyDown += listBox1_KeyDown;
             LoadServers();
             ApplyTheme();
+
+            // Accessibility
+            listBox1.AccessibleName = "Server list";
+            listBox1.AccessibleDescription = "List of available servers to join";
+            if (ipBox != null)
+            {
+                ipBox.AccessibleName = "IP address";
+                ipBox.AccessibleDescription = "Enter server IP to join";
+            }
+            if (ipConnectButton != null)
+            {
+                ipConnectButton.AccessibleName = "Join by IP";
+                ipConnectButton.AccessibleDescription = "Join the server by IP address";
+            }
+
+            // Context menu for servers
+            var ctx = new ContextMenuStrip();
+            var joinItem = new ToolStripMenuItem("Join");
+            var copyName = new ToolStripMenuItem("Copy Name");
+            ctx.Items.AddRange(new ToolStripItem[] { joinItem, copyName });
+            listBox1.ContextMenuStrip = ctx;
+
+            listBox1.MouseUp += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Right)
+                {
+                    int index = listBox1.IndexFromPoint(e.Location);
+                    if (index != ListBox.NoMatches)
+                    {
+                        listBox1.SelectedIndex = index;
+                    }
+                }
+            };
+            joinItem.Click += (s, e) => { ConfirmSelection(); };
+            copyName.Click += (s, e) =>
+            {
+                if (listBox1.SelectedItem is ServerInfo si)
+                {
+                    try { Clipboard.SetText(si.Name); } catch { }
+                }
+            };
         }
 
         private void ApplyTheme()

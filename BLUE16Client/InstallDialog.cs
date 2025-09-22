@@ -10,7 +10,9 @@ namespace BLUE16Client
         private Label label;
         public InstallDialog()
         {
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
+            this.MinimizeBox = false;
             this.Text = "Installing...";
             this.Width = 400;
             this.Height = 120;

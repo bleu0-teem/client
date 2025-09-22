@@ -13,7 +13,9 @@ namespace BLUE16Client
         public SettingsForm()
         {
             InitializeComponent();
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
+            this.MinimizeBox = false;
             this.ClientSize = new Size(400, 360); // Make the settings popup bigger
             // Load current settings
             checkBoxDarkMode.Checked = SettingsStore.DarkMode;
@@ -110,6 +112,43 @@ namespace BLUE16Client
                     }
                 }
             };
+
+            // Add Theme Builder button
+            var themeBuilderButton = new Button { Text = "Theme Builder...", Location = new Point(20, 230), Width = 150, Height = 30 };
+            themeBuilderButton.Click += (s, e) =>
+            {
+                using (var builder = new ThemeBuilderForm())
+                {
+                    if (builder.ShowDialog() == DialogResult.OK)
+                    {
+                        // Apply and select custom theme
+                        comboBoxTheme.SelectedItem = "Custom...";
+                        ApplyTheme();
+                        MessageBox.Show("Custom theme applied!", "Theme", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                }
+            };
+            this.Controls.Add(themeBuilderButton);
+            // Add Plugins button
+            var pluginsButton = new Button { Text = "Plugins...", Location = new Point(180, 230), Width = 120, Height = 30 };
+            pluginsButton.Click += (s, e) =>
+            {
+                using (var pf = new PluginsForm())
+                {
+                    pf.ShowDialog(this);
+                }
+            };
+            this.Controls.Add(pluginsButton);
+            // Add Plugin Maker button
+            var pluginMakerButton = new Button { Text = "Plugin Maker...", Location = new Point(310, 230), Width = 150, Height = 30 };
+            pluginMakerButton.Click += (s, e) =>
+            {
+                using (var pm = new PluginMakerForm())
+                {
+                    pm.ShowDialog(this);
+                }
+            };
+            this.Controls.Add(pluginMakerButton);
             ApplyTheme();
             comboBoxDomain.SelectedIndexChanged += (s, e) =>
             {

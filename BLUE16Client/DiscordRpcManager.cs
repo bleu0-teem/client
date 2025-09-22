@@ -85,6 +85,20 @@ namespace BLUE16Client
             UpdatePresence($"Playing {version.Name}", $"Server: {serverName}");
         }
 
+        public void UpdateForCustomClient(CustomClientInfo customClient)
+        {
+            string status = customClient.IsSupported ? "Using Custom Client" : "Custom Client (Unsupported)";
+            string details = $"Custom Client: {customClient.Name}";
+            
+            // Add login status to details if logged in
+            if (SettingsStore.IsLoggedIn)
+            {
+                details = $"{details} - {SettingsStore.Username}";
+            }
+            
+            UpdatePresence(details, status);
+        }
+
         public void Shutdown()
         {
             if (!SettingsStore.EnableDiscordRpc)

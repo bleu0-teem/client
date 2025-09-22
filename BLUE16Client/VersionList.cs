@@ -12,6 +12,7 @@ namespace BLUE16Client
     {
         public string? SelectedVersion { get; private set; }
         public VersionInfo? SelectedVersionInfo { get; private set; }
+        public CustomClientInfo? SelectedCustomClient { get; private set; }
         private void ApplyTheme()
         {
             if (SettingsStore.DarkMode)
@@ -53,6 +54,9 @@ namespace BLUE16Client
         public VersionList()
         {
             InitializeComponent();
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
             this.MaximizeBox = false;
             ApplyTheme();
             this.Font = ubuntuFont;
@@ -64,6 +68,82 @@ namespace BLUE16Client
             listBox1.ItemHeight = 32;
             listBox1.DrawItem += listBox1_DrawItem;
             LoadVersionsAsync();
+
+            // Add "Custom Client..." button to allow selecting/launching custom clients
+            var customClientButton = new Button
+            {
+                Text = "Custom Client...",
+                AutoSize = false,
+                Width = 140,
+                Height = 32,
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+            };
+
+            // Place it near the bottom-right of the dialog
+            // Ensure InitializeComponent placed listBox1 and form size; position relative to current ClientSize
+            // We will re-position on Load as well to be safe
+            customClientButton.Location = new Point(this.ClientSize.Width - customClientButton.Width - 16, this.ClientSize.Height - customClientButton.Height - 16);
+            this.Controls.Add(customClientButton);
+            this.Load += (s, e) =>
+            {
+                customClientButton.Location = new Point(this.ClientSize.Width - customClientButton.Width - 16, this.ClientSize.Height - customClientButton.Height - 16);
+            };
+
+            customClientButton.Click += (s, e) =>
+            {
+                using (var selector = new CustomClientSelector())
+                {
+                    if (selector.ShowDialog() == DialogResult.OK && selector.SelectedClient != null)
+                    {
+                        SelectedCustomClient = selector.SelectedClient;
+                        SelectedVersionInfo = null;
+                        SelectedVersion = null;
+                        this.DialogResult = DialogResult.OK;
+                        this.Close();
+                    }
+                }
+            };
+
+            // Context menu for versions
+            var ctx = new ContextMenuStrip();
+            var viewDetails = new ToolStripMenuItem("View Details");
+            var selectItem = new ToolStripMenuItem("Select");
+            var copyName = new ToolStripMenuItem("Copy Name");
+            ctx.Items.AddRange(new ToolStripItem[] { viewDetails, selectItem, copyName });
+            listBox1.ContextMenuStrip = ctx;
+
+            listBox1.MouseUp += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Right)
+                {
+                    int index = listBox1.IndexFromPoint(e.Location);
+                    if (index != ListBox.NoMatches)
+                    {
+                        listBox1.SelectedIndex = index;
+                    }
+                }
+            };
+
+            viewDetails.Click += (s, e) =>
+            {
+                if (listBox1.SelectedItem is VersionInfo v)
+                {
+                    string msg = $"Name: {v.Name}\nStatus: {v.Status}\nAlt Name: {v.AltName}\nPatched by: {v.PatchBy}\nOffline: {v.Offline}\nDescription: {v.Desc}";
+                    MessageBox.Show(msg, "Version Details", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            };
+            selectItem.Click += (s, e) => { ConfirmSelection(); };
+            copyName.Click += (s, e) =>
+            {
+                if (listBox1.SelectedItem is VersionInfo v)
+                {
+                    try { Clipboard.SetText(v.Name); } catch { }
+                }
+            };
+
+            // Accessibility
+            listBox1.AccessibleName = "Version list";
+            listBox1.AccessibleDescription = "List of available client versions";
         }
 
         private async void LoadVersionsAsync()

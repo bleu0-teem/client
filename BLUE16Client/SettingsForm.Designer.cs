@@ -103,14 +103,14 @@ namespace BLUE16Client
             comboBoxTheme.DropDownStyle = ComboBoxStyle.DropDownList;
             comboBoxTheme.FormattingEnabled = true;
             comboBoxTheme.Items.AddRange(new object[] { "Default", "Dark", "Custom..." });
-            comboBoxTheme.Location = new Point(19, 259);
+            comboBoxTheme.Location = new Point(19, 287);
             comboBoxTheme.Name = "comboBoxTheme";
             comboBoxTheme.Size = new Size(151, 28);
             comboBoxTheme.TabIndex = 7;
             // 
             // buttonImportTheme
             // 
-            buttonImportTheme.Location = new Point(180, 259);
+            buttonImportTheme.Location = new Point(180, 287);
             buttonImportTheme.Name = "buttonImportTheme";
             buttonImportTheme.Size = new Size(90, 28);
             buttonImportTheme.TabIndex = 9;
@@ -119,7 +119,7 @@ namespace BLUE16Client
             // 
             // buttonExportTheme
             // 
-            buttonExportTheme.Location = new Point(280, 259);
+            buttonExportTheme.Location = new Point(280, 287);
             buttonExportTheme.Name = "buttonExportTheme";
             buttonExportTheme.Size = new Size(90, 28);
             buttonExportTheme.TabIndex = 10;
@@ -129,7 +129,7 @@ namespace BLUE16Client
             // labelTheme
             // 
             labelTheme.AutoSize = true;
-            labelTheme.Location = new Point(19, 236);
+            labelTheme.Location = new Point(19, 264);
             labelTheme.Name = "labelTheme";
             labelTheme.Size = new Size(89, 20);
             labelTheme.TabIndex = 8;
@@ -139,7 +139,7 @@ namespace BLUE16Client
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(381, 362);
+            ClientSize = new Size(453, 362);
             Controls.Add(buttonSave);
             Controls.Add(labelLanguage);
             Controls.Add(comboBoxLanguage);

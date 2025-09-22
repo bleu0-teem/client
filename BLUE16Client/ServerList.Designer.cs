@@ -1,4 +1,4 @@
-﻿namespace BLUE16Client
+namespace BLUE16Client
 {
     partial class ServerList
     {
@@ -37,7 +37,7 @@
             listBox1.FormattingEnabled = true;
             listBox1.Location = new Point(12, 72);
             listBox1.Name = "listBox1";
-            listBox1.Size = new Size(860, 324);
+            listBox1.Size = new Size(962, 324);
             listBox1.TabIndex = 0;
             listBox1.SelectedIndexChanged += listBox1_SelectedIndexChanged;
             // 
@@ -45,7 +45,7 @@
             // 
             createServerButton.Location = new Point(12, 420);
             createServerButton.Name = "createServerButton";
-            createServerButton.Size = new Size(860, 36);
+            createServerButton.Size = new Size(962, 36);
             createServerButton.TabIndex = 1;
             createServerButton.Text = "Create your own server";
             createServerButton.UseVisualStyleBackColor = true;
@@ -55,7 +55,7 @@
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(884, 470);
+            ClientSize = new Size(986, 470);
             Controls.Add(createServerButton);
             Controls.Add(listBox1);
             FormBorderStyle = FormBorderStyle.Fixed3D;

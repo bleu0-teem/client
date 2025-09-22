@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net.NetworkInformation;
 using System.Windows.Forms;
 using System.Drawing;
@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
+using System.Diagnostics;
 
 namespace BLUE16Client
 {
@@ -14,16 +15,29 @@ namespace BLUE16Client
     {
         private System.Windows.Forms.Timer internetStatusTimer;
         private VersionList.VersionInfo? selectedVersionInfo;
+        private CustomClientInfo? selectedCustomClient;
         private string versionsFolder => SettingsStore.VersionsFolder ?? Path.Combine(Application.StartupPath, "Versions");
 
         private NotifyIcon? trayIcon;
         private ContextMenuStrip? trayMenu;
 
+        // Performance monitoring
+        private System.Windows.Forms.Timer? perfTimer;
+        private Panel? perfPanel;
+        private Label? perfCpuTotalLabel;
+        private Label? perfCpuAppLabel;
+        private Label? perfMemLabel;
+        private PerformanceCounter? cpuTotalCounter;
+        private DateTime lastCpuSampleTime = DateTime.UtcNow;
+        private TimeSpan lastProcCpu = Process.GetCurrentProcess().TotalProcessorTime;
+        private PerformanceMonitorForm? perfWindow;
+
         public Home()
         {
             InitializeComponent();
-            this.FormBorderStyle = FormBorderStyle.Sizable;
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
+            this.MinimizeBox = false;
             internetStatusTimer = new System.Windows.Forms.Timer();
             internetStatusTimer.Interval = 5000;
             internetStatusTimer.Tick += InternetStatusTimer_Tick;
@@ -50,13 +64,210 @@ namespace BLUE16Client
             // Initialize Discord RPC
             _ = DiscordRpcManager.Instance;
 
+            // Initialize Custom Client Manager
+            CustomClientManager.Initialize();
+
+            // Initialize Plugin Manager
+            PluginManager.Initialize();
+
+            // Initialize Client Mod Manager
+            ClientModManager.Initialize();
+
             // Initialize tray icon
             InitializeTray();
+
+            // Accessibility names and descriptions
+            startgame.AccessibleName = "Play";
+            startgame.AccessibleDescription = "Launch the selected version or custom client";
+            panel3.AccessibleName = "Version panel";
+            panel3.AccessibleDescription = "Displays the selected version. Right-click for options";
+            label7.AccessibleName = "Selected version label";
+            label7.AccessibleDescription = "Shows the current selected version";
+            panel2.AccessibleName = "Server panel";
+            panel2.AccessibleDescription = "Displays the selected server. Right-click for options";
+            label6.AccessibleName = "Selected server label";
+            label6.AccessibleDescription = "Shows the current selected server";
+
+            // Tooltips for common actions
+            var tooltip = new ToolTip();
+            tooltip.SetToolTip(startgame, "Launch the selected version or custom client");
+            tooltip.SetToolTip(panel3, "Click to select a version. Right-click for more options");
+            tooltip.SetToolTip(label7, "Click to select a version. Right-click for more options");
+            tooltip.SetToolTip(panel2, "Click to select a server. Right-click for more options");
+            tooltip.SetToolTip(label6, "Click to select a server. Right-click for more options");
+
+            // Context menu for Version panel
+            var versionCtx = new ContextMenuStrip();
+            var ctxSelectVersion = new ToolStripMenuItem("Select Version...");
+            var ctxSelectCustom = new ToolStripMenuItem("Select Custom Client...");
+            var ctxClearVersion = new ToolStripMenuItem("Clear Selection");
+            versionCtx.Items.AddRange(new ToolStripItem[] { ctxSelectVersion, ctxSelectCustom, new ToolStripSeparator(), ctxClearVersion });
+            panel3.ContextMenuStrip = versionCtx;
+            label7.ContextMenuStrip = versionCtx;
+            ctxSelectVersion.Click += (s, e) => VersionSelect_Click(s!, e);
+            ctxSelectCustom.Click += (s, e) => CustomClientSelect_Click(s!, e);
+            ctxClearVersion.Click += (s, e) => { selectedVersionInfo = null; selectedCustomClient = null; UpdateVersionDisplay(); };
+
+            // Context menu for Server panel
+            var serverCtx = new ContextMenuStrip();
+            var ctxSelectServer = new ToolStripMenuItem("Select Server...");
+            var ctxClearServer = new ToolStripMenuItem("Clear Server");
+            serverCtx.Items.AddRange(new ToolStripItem[] { ctxSelectServer, new ToolStripSeparator(), ctxClearServer });
+            panel2.ContextMenuStrip = serverCtx;
+            label6.ContextMenuStrip = serverCtx;
+            ctxSelectServer.Click += (s, e) => ServerSelect_Click(s!, e);
+            ctxClearServer.Click += (s, e) => { label6.Text = "Click to select"; };
+
+            // Initialize Performance Monitoring UI (bottom-right compact panel)
+            try
+            {
+                perfPanel = new Panel
+                {
+                    Width = 240,
+                    Height = 64,
+                    BackColor = Color.FromArgb(245, 245, 245),
+                    Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
+                };
+                // Position near bottom-right corner with 8px margin
+                perfPanel.Left = this.ClientSize.Width - perfPanel.Width - 8;
+                perfPanel.Top = this.ClientSize.Height - perfPanel.Height - 8;
+
+                var title = new Label
+                {
+                    Text = "Performance",
+                    Font = new Font(Font, FontStyle.Bold),
+                    AutoSize = true,
+                    Left = 8,
+                    Top = 6
+                };
+                perfCpuTotalLabel = new Label { Text = "CPU Total: -- %", AutoSize = true, Left = 8, Top = 24 };
+                perfCpuAppLabel = new Label { Text = "CPU App: -- %", AutoSize = true, Left = 8, Top = 40 };
+                perfMemLabel = new Label { Text = "Memory: --", AutoSize = true, Left = 120, Top = 24 };
+
+                perfPanel.Controls.Add(title);
+                perfPanel.Controls.Add(perfCpuTotalLabel);
+                perfPanel.Controls.Add(perfCpuAppLabel);
+                perfPanel.Controls.Add(perfMemLabel);
+
+                // Adjust colors for dark mode after settings applied
+                this.Controls.Add(perfPanel);
+                perfPanel.Cursor = Cursors.Hand;
+                perfPanel.DoubleClick += (s, e) => ShowPerformanceWindow();
+                this.Resize += (s, e) =>
+                {
+                    if (perfPanel != null)
+                    {
+                        perfPanel.Left = this.ClientSize.Width - perfPanel.Width - 8;
+                        perfPanel.Top = this.ClientSize.Height - perfPanel.Height - 8;
+                    }
+                };
+
+                // Initialize counters and timer
+                cpuTotalCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total", true);
+                _ = cpuTotalCounter.NextValue(); // prime, first read is 0
+
+                perfTimer = new System.Windows.Forms.Timer { Interval = 1000 };
+                perfTimer.Tick += PerfTimer_Tick;
+                perfTimer.Start();
+            }
+            catch
+            {
+                // Silently ignore if performance counters are unavailable
+            }
+        }
+
+        private void PerfTimer_Tick(object? sender, EventArgs e)
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+                var proc = System.Diagnostics.Process.GetCurrentProcess();
+
+                // App CPU usage based on TotalProcessorTime delta
+                var newProcCpu = proc.TotalProcessorTime;
+                var cpuMs = (newProcCpu - lastProcCpu).TotalMilliseconds;
+                var wallMs = (now - lastCpuSampleTime).TotalMilliseconds;
+                var cpuApp = wallMs > 0 ? Math.Min(100.0, Math.Max(0.0, (cpuMs / wallMs) * 100.0 / Environment.ProcessorCount)) : 0.0;
+                lastProcCpu = newProcCpu;
+                lastCpuSampleTime = now;
+
+                // System total CPU
+                float cpuTotal = 0f;
+                if (cpuTotalCounter != null)
+                {
+                    cpuTotal = cpuTotalCounter.NextValue();
+                }
+
+                // Memory usage
+                long working = proc.WorkingSet64;
+                long managed = GC.GetTotalMemory(false);
+
+                if (perfCpuAppLabel != null)
+                    perfCpuAppLabel.Text = $"CPU App: {cpuApp:0.0} %";
+                if (perfCpuTotalLabel != null)
+                    perfCpuTotalLabel.Text = $"CPU Total: {cpuTotal:0.0} %";
+                if (perfMemLabel != null)
+                    perfMemLabel.Text = $"Memory: {FormatBytes(working)}\nManaged: {FormatBytes(managed)}";
+            }
+            catch
+            {
+                // Ignore sampling errors
+            }
+        }
+
+        private static string FormatBytes(long bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+            double len = bytes;
+            int order = 0;
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len /= 1024.0;
+            }
+            return $"{len:0.##} {sizes[order]}";
+        }
+
+        private void ShowPerformanceWindow()
+        {
+            try
+            {
+                if (perfWindow == null || perfWindow.IsDisposed)
+                {
+                    perfWindow = new PerformanceMonitorForm();
+                }
+                if (!perfWindow.Visible)
+                {
+                    perfWindow.Show(this);
+                }
+                perfWindow.BringToFront();
+                perfWindow.Activate();
+            }
+            catch
+            {
+                // ignore
+            }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             base.OnFormClosing(e);
+            // Cleanup performance monitoring resources
+            try
+            {
+                if (perfTimer != null)
+                {
+                    perfTimer.Stop();
+                    perfTimer.Tick -= PerfTimer_Tick;
+                }
+                cpuTotalCounter?.Dispose();
+                if (perfWindow != null && !perfWindow.IsDisposed)
+                {
+                    perfWindow.Close();
+                    perfWindow.Dispose();
+                }
+            }
+            catch { }
             DiscordRpcManager.Instance.Shutdown();
         }
 
@@ -131,12 +342,15 @@ namespace BLUE16Client
         {
             trayMenu = new ContextMenuStrip();
             var showItem = new ToolStripMenuItem("Show");
+            var perfItem = new ToolStripMenuItem("Performance Monitor...");
             var playItem = new ToolStripMenuItem("Play");
             var exitItem = new ToolStripMenuItem("Exit");
             showItem.Click += (s, e) => RestoreFromTray();
+            perfItem.Click += (s, e) => ShowPerformanceWindow();
             playItem.Click += (s, e) => Startgame_Click(this, EventArgs.Empty);
             exitItem.Click += (s, e) => { trayIcon!.Visible = false; Close(); };
             trayMenu.Items.Add(showItem);
+            trayMenu.Items.Add(perfItem);
             trayMenu.Items.Add(playItem);
             trayMenu.Items.Add(new ToolStripSeparator());
             trayMenu.Items.Add(exitItem);
@@ -206,6 +420,15 @@ namespace BLUE16Client
                     }
                     if (theme.MainFont != null) c.Font = theme.MainFont;
                 }
+                // Adjust perf panel colors for custom theme
+                if (perfPanel != null)
+                {
+                    perfPanel.BackColor = theme.PanelColor;
+                    foreach (Control cc in perfPanel.Controls)
+                    {
+                        cc.ForeColor = theme.LabelColor;
+                    }
+                }
             }
             else if (SettingsStore.DarkMode)
             {
@@ -234,6 +457,14 @@ namespace BLUE16Client
                         }
                     }
                 }
+                if (perfPanel != null)
+                {
+                    perfPanel.BackColor = Color.FromArgb(45, 45, 45);
+                    foreach (Control cc in perfPanel.Controls)
+                    {
+                        cc.ForeColor = Color.White;
+                    }
+                }
             }
             else
             {
@@ -260,6 +491,14 @@ namespace BLUE16Client
                             // Revert icon colors
                             button.Image = InvertImage((Bitmap)button.Image);
                         }
+                    }
+                }
+                if (perfPanel != null)
+                {
+                    perfPanel.BackColor = Color.White;
+                    foreach (Control cc in perfPanel.Controls)
+                    {
+                        cc.ForeColor = Color.Black;
                     }
                 }
             }
@@ -389,31 +628,154 @@ namespace BLUE16Client
         {
             using (var versionList = new VersionList())
             {
-                if (versionList.ShowDialog() == DialogResult.OK && versionList.SelectedVersionInfo != null)
+                if (versionList.ShowDialog() == DialogResult.OK)
                 {
-                    selectedVersionInfo = versionList.SelectedVersionInfo;
-                    label7.Text = selectedVersionInfo.Name;
-                    // Update panel1 with version info
-                    label3.Text = $"Version: {selectedVersionInfo.Name} / {selectedVersionInfo.AltName}\n" +
-                                  $"Download Link: {selectedVersionInfo.DownloadUrl}\n" +
-                                  $"Vulnerable: {selectedVersionInfo.Vulnerable}\n" +
-                                  $"Patched by: {selectedVersionInfo.PatchBy}\n" +
-                                  $"Offline: {selectedVersionInfo.Offline}\n" +
-                                  $"Description: {selectedVersionInfo.Desc}";
-
-                    // Update Discord RPC with version info
-                    DiscordRpcManager.Instance.UpdateForVersion(selectedVersionInfo);
+                    if (versionList.SelectedCustomClient != null)
+                    {
+                        selectedCustomClient = versionList.SelectedCustomClient;
+                        selectedVersionInfo = null;
+                    }
+                    else
+                    {
+                        selectedVersionInfo = versionList.SelectedVersionInfo;
+                        selectedCustomClient = null;
+                    }
+                    UpdateVersionDisplay();
                 }
+            }
+        }
+
+        private void CustomClientSelect_Click(object sender, EventArgs e)
+        {
+            using (var clientSelector = new CustomClientSelector())
+            {
+                if (clientSelector.ShowDialog() == DialogResult.OK)
+                {
+                    selectedCustomClient = clientSelector.SelectedClient;
+                    selectedVersionInfo = null; // Clear version selection
+                    UpdateVersionDisplay();
+                    // Update Discord RPC for custom client
+                    if (selectedCustomClient != null)
+                        DiscordRpcManager.Instance.UpdateForCustomClient(selectedCustomClient);
+                }
+            }
+        }
+
+        private void UpdateVersionDisplay()
+        {
+            if (selectedCustomClient != null)
+            {
+                label7.Text = selectedCustomClient.Name;
+                label4.Text = "Custom Client Information";
+                
+                string status = selectedCustomClient.IsSupported ? "Supported" : "Unsupported";
+                string details = $"RCCS: {Path.GetFileName(selectedCustomClient.RccsPath)}\n" +
+                               $"Client: {Path.GetFileName(selectedCustomClient.ClientPath)}\n" +
+                               $"Status: {status}";
+                
+                if (!selectedCustomClient.IsSupported && !string.IsNullOrEmpty(selectedCustomClient.ErrorMessage))
+                {
+                    details += $"\nError: {selectedCustomClient.ErrorMessage}";
+                }
+                
+                if (selectedCustomClient.AutoLaunchServer && !string.IsNullOrEmpty(selectedCustomClient.ServerPath))
+                {
+                    details += $"\nAuto-launch server: {Path.GetFileName(selectedCustomClient.ServerPath)}";
+                }
+                
+                // Update Discord RPC
+                DiscordRpcManager.Instance.UpdateForCustomClient(selectedCustomClient);
+            }
+            else if (selectedVersionInfo != null)
+            {
+                label7.Text = selectedVersionInfo.Name;
+                label4.Text = "Version Information";
+                
+                string details = $"Status: {selectedVersionInfo.Status}\n" +
+                               $"Alt Name: {selectedVersionInfo.AltName}\n" +
+                               $"Patched by: {selectedVersionInfo.PatchBy}\n" +
+                               $"Offline: {selectedVersionInfo.Offline}\n" +
+                               $"Description: {selectedVersionInfo.Desc}";
+                
+                // Update Discord RPC with version info
+                DiscordRpcManager.Instance.UpdateForVersion(selectedVersionInfo);
+            }
+            else
+            {
+                label7.Text = "Click to select";
+                label4.Text = "Version Information";
+                // Reset Discord RPC
+                DiscordRpcManager.Instance.UpdatePresence("In Menu", "Idle");
             }
         }
 
         private async void Startgame_Click(object sender, EventArgs e)
         {
-            if (selectedVersionInfo == null)
+            if (selectedVersionInfo == null && selectedCustomClient == null)
             {
-                MessageBox.Show("Please select a version first.", "No Version Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Please select a version or custom client first.", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+
+            // Handle custom client launch
+            if (selectedCustomClient != null)
+            {
+                if (!selectedCustomClient.IsSupported)
+                {
+                    MessageBox.Show($"Cannot launch unsupported client: {selectedCustomClient.ErrorMessage}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                string? serverAddress = label6.Text != "Click to select" ? label6.Text : null;
+                
+                label2.Text = "STATUS: Launching custom client...";
+                label2.ForeColor = Color.Orange;
+
+                // Plugin hook: before launch
+                var launchCtxCustom = new LaunchContext
+                {
+                    Version = null,
+                    CustomClient = selectedCustomClient,
+                    Server = serverAddress,
+                    WorkingDirectory = Path.GetDirectoryName(selectedCustomClient.ClientPath),
+                    ExecutablePath = selectedCustomClient.ClientPath,
+                    Arguments = selectedCustomClient.LaunchArguments
+                };
+                PluginManager.BeforeLaunch(launchCtxCustom);
+
+                // Mods hook: pre-launch
+                var modCtxCustom = new ModContext
+                {
+                    Version = null,
+                    CustomClient = selectedCustomClient,
+                    Server = serverAddress,
+                    WorkingDirectory = Path.GetDirectoryName(selectedCustomClient.ClientPath),
+                    ExecutablePath = selectedCustomClient.ClientPath,
+                    Arguments = selectedCustomClient.LaunchArguments
+                };
+                ClientModManager.OnPreLaunch(modCtxCustom);
+
+                bool success = await CustomClientManager.LaunchCustomClientAsync(selectedCustomClient, serverAddress);
+                
+                if (success)
+                {
+                    label2.Text = "STATUS: Custom client launched";
+                    label2.ForeColor = Color.Green;
+                    PluginManager.AfterLaunch(launchCtxCustom, true, null);
+                    ClientModManager.OnPostLaunch(modCtxCustom, true, null);
+                }
+                else
+                {
+                    label2.Text = "STATUS: Launch failed";
+                    label2.ForeColor = Color.Red;
+                    var err = new Exception("Custom client launch failed");
+                    PluginManager.AfterLaunch(launchCtxCustom, false, err);
+                    ClientModManager.OnPostLaunch(modCtxCustom, false, err);
+                }
+                return;
+            }
+
+            // Handle regular version launch
             if (selectedVersionInfo.Offline)
             {
                 MessageBox.Show("Warning: Online features are not available for this version.", "Offline Version", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -482,10 +844,56 @@ namespace BLUE16Client
                     startInfo.Arguments = selectedVersionInfo.LaunchArguments;
                 }
                 startInfo.WorkingDirectory = versionFolder;
+                // Plugin hook: before launch
+                var launchCtx = new LaunchContext
+                {
+                    Version = selectedVersionInfo,
+                    CustomClient = null,
+                    Server = label6.Text != "Click to select" ? label6.Text : null,
+                    WorkingDirectory = versionFolder,
+                    ExecutablePath = exePath,
+                    Arguments = startInfo.Arguments
+                };
+                PluginManager.BeforeLaunch(launchCtx);
+
+                // Mods hook: pre-launch
+                var modCtx = new ModContext
+                {
+                    Version = selectedVersionInfo,
+                    CustomClient = null,
+                    Server = label6.Text != "Click to select" ? label6.Text : null,
+                    WorkingDirectory = versionFolder,
+                    ExecutablePath = exePath,
+                    Arguments = startInfo.Arguments
+                };
+                ClientModManager.OnPreLaunch(modCtx);
+
                 System.Diagnostics.Process.Start(startInfo);
+                PluginManager.AfterLaunch(launchCtx, true, null);
+                ClientModManager.OnPostLaunch(modCtx, true, null);
             }
             catch (Exception ex)
             {
+                var launchCtx = new LaunchContext
+                {
+                    Version = selectedVersionInfo,
+                    CustomClient = null,
+                    Server = label6.Text != "Click to select" ? label6.Text : null,
+                    WorkingDirectory = versionFolder,
+                    ExecutablePath = exePath,
+                    Arguments = selectedVersionInfo.LaunchArguments
+                };
+                PluginManager.AfterLaunch(launchCtx, false, ex);
+                var modCtx = new ModContext
+                {
+                    Version = selectedVersionInfo,
+                    CustomClient = null,
+                    Server = label6.Text != "Click to select" ? label6.Text : null,
+                    WorkingDirectory = versionFolder,
+                    ExecutablePath = exePath,
+                    Arguments = selectedVersionInfo.LaunchArguments
+                };
+                ClientModManager.OnPostLaunch(modCtx, false, ex);
                 MessageBox.Show($"Failed to launch version: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

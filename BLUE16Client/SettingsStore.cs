@@ -22,7 +22,7 @@ public static class SettingsStore
     public static string GetResourceUrl(string path)
     {
         if (ServerDomain == "github.com")
-            return $"https://raw.githubusercontent.com/blue16-team/blue16-web/refs/heads/main/www/{path.TrimStart('/')}";
+            return $"https://raw.githubusercontent.com/bleu0-teem/web/refs/heads/main/www/{path.TrimStart('/')}";
         var domain = ServerDomain.TrimEnd('/');
         if (!domain.StartsWith("http")) domain = "https://" + domain;
         return $"{domain}/{path.TrimStart('/')}";

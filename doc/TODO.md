@@ -37,8 +37,8 @@ Legend:
  - [x] **Offline Mode (Limited):** Allow launching previously downloaded versions if offline.
  - [ ] **"Remember Me" Functionality:** Securely persist login for extended periods.
  - [x] **Pre-Launch Checks:** Verify game files, dependencies, or required permissions.
- - [ ] **Context Menus:** Right-click options for various UI elements.
- - [ ] **Accessibility Improvements:** Basic keyboard navigation, screen reader compatibility.
+ - [x] **Context Menus:** Right-click options for various UI elements.
+ - [x] **Accessibility Improvements:** Basic keyboard navigation, screen reader compatibility.
  
 ## QA / Verification Checklist
  - [ ] Client installation and uninstallation are clean.
@@ -58,8 +58,8 @@ Legend:
  - [ ] **Dependency Management:** Review and update NuGet packages.
  
 ## Ideas (future)
- - [ ] **Mod/Plugin Support:** A simple system for managing game modifications.
+ - [x] **Mod/Plugin Support:** A simple system for managing game modifications.
  - [ ] **Multiple User Profiles:** Support for switching between different BLUE16 accounts.
  - [ ] **Game Library View:** A more visually appealing way to manage local game installations.
- - [ ] **Performance Monitoring:** In-app display of client resource usage.
+ - [x] **Performance Monitoring:** In-app display of client resource usage.
  - [ ] **Multi-platform support:** Explore MAUI or Avalonia UI for cross-platform clients.
